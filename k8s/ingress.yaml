@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  # Ingressの名前
+  name: onpre-k8s-return-hello-auth-ingress
+  # Ingress-Controllerの挙動を制御するアノテーション
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /  # / で受けたリクエストを / としてServiceに転送
+spec:
+  # Ingress-Controllerの指定(Docker-Desktop上でingress-nginx有効化の場合はnginx)
+  ingressClassName: nginx
+  # ルーティングルール
+  rules:
+    - host: araki.com  # ホストヘッダが araki.com のリクエストのみ対象
+      http:
+        paths:
+          - path: /  # パス / を対象
+            pathType: Prefix
+            # リクエストの転送先のService定義
+            backend:
+              service:
+                # Service名
+                name: onpre-k8s-return-hello-auth
+                # Serviceの公開ポート番号
+                port:
+                  number: 8000

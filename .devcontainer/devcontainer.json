@@ -1,0 +1,7 @@
+{
+  "name": "onpre_k8s_return_hello_auth_container",
+  "image": "onpre_k8s_return_hello_auth_image",
+  "forwardPorts": [
+    8000
+  ]
+}

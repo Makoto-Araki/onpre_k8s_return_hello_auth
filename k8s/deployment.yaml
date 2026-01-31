@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # Deploymentの名前
+  name: onpre-k8s-return-hello-auth
+spec:
+  # 同時起動Pod数
+  replicas: 2
+  # Deploymentが管理するPodの識別条件(spec.template.metadata.labelsと一致する必要がある)
+  selector:
+    matchLabels:
+      app: onpre-k8s-return-hello-auth
+  # Deployment配下で作成されるPod定義
+  template:
+    metadata:
+      # Podに付与されるラベル(spec.selector.matchLabelsと一致する必要がある)
+      labels:
+        app: onpre-k8s-return-hello-auth
+    spec:
+      # Pod内で起動するコンテナ定義
+      containers:
+        - name: onpre-k8s-return-hello-auth-container  # コンテナ名
+          # イメージの取得先
+          image: makotoaraki346/onpre_k8s_return_hello_auth_image:v2.1.0  # Dockerhub上のイメージ指定
+          # イメージのダウンロード設定
+          imagePullPolicy: IfNotPresent  # ローカルにイメージが存在すれば再取得しない
+          # ポート番号
+          ports:
+            - containerPort: 8000  # コンテナが待ち受けるポート番号
+          # リソース設定
+          resources:
+            # 必要最低限のリソース
+            requests:
+              cpu: "100m"  # CPU 0.1 コア相当
+              memory: "128Mi"  # メモリ 128MiB
+            # 使用可能なリソース上限値
+            limits:
+              cpu: "500m"  # CPU 0.5 コア相当
+              memory: "256Mi"  # メモリ 256Mib
+          # コンテナの生存確認、失敗時はPodが再起動
+          livenessProbe:
+            httpGet:
+              path: /  # GET / にアクセスして確認
+              port: 8000
+            initialDelaySeconds: 10  # 起動後、最初のチェックまで待つ秒数
+            periodSeconds: 10  # チェック間隔(10秒)
+          # コンテナのリクエスト受付可能確認、失敗時はServiceからリクエストが送られなくなる
+          readinessProbe:
+            httpGet:
+              path: /  # GET / にアクセスして確認
+              port: 8000
+            initialDelaySeconds: 10  # 起動後、最初のチェックまで待つ秒数
+            periodSeconds: 10  # チェック間隔(10秒)

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  # Serviceの名前
+  name: onpre-k8s-return-hello-auth
+spec:
+  # Ingress経由でアプリ公開
+  type: ClusterIP
+  # 通信の転送先Podの選択条件
+  selector:
+    app: onpre-k8s-return-hello-auth
+  # 各ポート番号
+  ports:
+    - port: 8000  # Service自体が待ち受けるポート番号
+      targetPort: 8000  # Pod(コンテナ)側のポート番号

@@ -1,0 +1,27 @@
+{
+  // 保存時に自動でフォーマットを実行する
+  // コードスタイルをチーム内で揃えたい場合に有効
+  "editor.formatOnSave": true,
+
+  // Python 拡張機能による型チェックのレベル
+  // "off" / "basic" / "strict" が指定可能
+  // とりあえず警告だけ見たい場合は "basic" が無難
+  "python.analysis.typeCheckingMode": "basic",
+
+  // VSCode が使用する Python インタプリタのパス
+  // 仮想環境を使っていない場合は "python" でOK
+  // 仮想環境を使う場合は ".venv/bin/python" などに変更する
+  "python.defaultInterpreterPath": "python",
+
+  // エクスプローラー上で表示しないファイル・ディレクトリ
+  // Python のキャッシュや不要ファイルを隠すための設定
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true
+  },
+
+  // 検索対象からも除外する（grep / Ctrl+Shift+F）
+  "search.exclude": {
+    "**/__pycache__": true
+  }
+}
