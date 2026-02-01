@@ -5,6 +5,7 @@ WORKDIR /app
 
 # パッケージ更新と不要パッケージの削除
 RUN apt-get update \
+ && apt-get upgrade -y \
  && apt-get remove -y python3-wheel \
  && rm -rf /var/lib/apt/lists/*
 
