@@ -1,0 +1,35 @@
+# -----------------------------------------------------------------------
+# Workflow名: Pull Request CI
+# 目的:
+# - Pull Request 時の品質ゲート
+# - main ブランチを壊さないための事前チェック
+# - 副作用（push / deploy）は一切行わない
+# -----------------------------------------------------------------------
+name: Pull Request CI
+
+on:
+  # main 向けの Pull Request が作成・更新された時のみ実行
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ソースコードの取得
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. DockerイメージをCI用にビルド
+      #    - push しない
+      #    - キャッシュやタグ管理は不要
+      - name: Build image for CI
+        run: docker build -t onpre_k8s_return_hello_auth_image:ci .
+
+      # 3. 単体・機能テストの実行
+      #    - Pull Requestで最低限保証したい品質
+      - name: Run tests
+        run: |
+          docker run --rm onpre_k8s_return_hello_auth_image:ci \
+            python -m pytest tests/test_main.py
