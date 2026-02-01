@@ -21,7 +21,7 @@ spec:
       containers:
         - name: onpre-k8s-return-hello-auth-container  # コンテナ名
           # イメージの取得先
-          image: makotoaraki346/onpre_k8s_return_hello_auth_image:v0.3.0  # Dockerhub上のイメージ指定
+          image: makotoaraki346/onpre_k8s_return_hello_auth_image:v0.3.1  # Dockerhub上のイメージ指定
           # イメージのダウンロード設定
           imagePullPolicy: IfNotPresent  # ローカルにイメージが存在すれば再取得しない
           # ポート番号
@@ -40,14 +40,14 @@ spec:
           # コンテナの生存確認、失敗時はPodが再起動
           livenessProbe:
             httpGet:
-              path: /  # GET / にアクセスして確認
+              path: /health  # GET /health にアクセスして確認
               port: 8000
             initialDelaySeconds: 10  # 起動後、最初のチェックまで待つ秒数
             periodSeconds: 10  # チェック間隔(10秒)
           # コンテナのリクエスト受付可能確認、失敗時はServiceからリクエストが送られなくなる
           readinessProbe:
             httpGet:
-              path: /  # GET / にアクセスして確認
+              path: /health  # GET /health にアクセスして確認
               port: 8000
             initialDelaySeconds: 10  # 起動後、最初のチェックまで待つ秒数
             periodSeconds: 10  # チェック間隔(10秒)

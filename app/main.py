@@ -18,6 +18,11 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
             detail = "Invalid Token",
         )
 
+# HTTP-GETメソッドでヘルスチェック用エンドポイント
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
 # HTTP-GETメソッドで "/" にアクセス時の処理
 @app.get("/")
 def read_root(_: None = Depends(verify_token)):
