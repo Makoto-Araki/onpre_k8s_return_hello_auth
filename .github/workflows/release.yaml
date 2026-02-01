@@ -1,0 +1,48 @@
+# -----------------------------------------------------------------------
+# Workflow名: Release Image
+# 目的:
+# - バージョンタグ付与時にDockerイメージを公開
+# - 成果物（Docker Image）を外部へ提供
+# - 副作用を持つ処理を完全に隔離
+# -----------------------------------------------------------------------
+name: Release Image
+
+on:
+  # v1.0.0 のようなタグが push された時のみ実行
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. ソースコード取得
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. リリース用イメージをビルド
+      - name: Build release image
+        run: docker build -t onpre_k8s_return_hello_auth_image:release .
+
+      # 3. DockerHubにログイン
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 4. DockerHubへpush
+      - name: Push image to DockerHub
+        run: |
+          REPO=${{ secrets.DOCKERHUB_USERNAME }}/onpre_k8s_return_hello_auth_image
+          VERSION=${{ github.ref_name }}
+
+          # バージョンタグ付きでpush
+          docker tag onpre_k8s_return_hello_auth_image:release $REPO:$VERSION
+          docker push $REPO:$VERSION
+
+          # latestタグも必要なら付与
+          docker tag onpre_k8s_return_hello_auth_image:release $REPO:latest
+          docker push $REPO:latest

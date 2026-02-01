@@ -1,0 +1,43 @@
+# -----------------------------------------------------------------------
+# Workflow名: Main CI
+# 目的:
+# - main ブランチの健全性を保証
+# - PRマージ後の最終チェック
+# - まだリリースはしない
+# -----------------------------------------------------------------------
+name: Main CI
+
+on:
+  # main ブランチへの push（= PR merge）時のみ実行
+  push:
+    branches: [ main ]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. ソースコード取得
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. Dockerイメージを本番相当でビルド
+      - name: Build image
+        run: docker build -t onpre_k8s_return_hello_auth_image:main .
+
+      # 3. 脆弱性スキャン
+      #    - main では必ずセキュリティを確認
+      - name: Run vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'onpre_k8s_return_hello_auth_image:main'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          ignore-unfixed: true
+
+      # 4. テスト再実行（最終確認）
+      - name: Run tests
+        run: |
+          docker run --rm onpre_k8s_return_hello_auth_image:main \
+            python -m pytest tests/test_main.py
