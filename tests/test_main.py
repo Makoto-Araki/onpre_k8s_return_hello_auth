@@ -8,36 +8,108 @@ client = TestClient(app)
 VALID_TOKEN = "my-secret-token"
 
 # テスト関数(正しいトークン送信時のテスト)
-def test_read_root_success():
+def test_read_hello1_success():
 
     # AuthorizationヘッダーにBearerトークン設定
     headers = {"Authorization": f"Bearer {VALID_TOKEN}"}
 
-    # エンドポイント "/" にGETリクエスト送信、実際のWebサーバー通信は発生しない
-    response = client.get("/", headers=headers)
+    # エンドポイント "/hello1" にGETリクエスト送信、実際のWebサーバー通信は発生しない
+    response = client.get("/hello1", headers=headers)
 
     # APIの戻り値を確認
     assert response.status_code == 200
-    assert response.json() == {"message": "Hello"}
+    assert response.json() == {"message": "Hello1"}
+
+# テスト関数(正しいトークン送信時のテスト)
+def test_read_hello2_success():
+
+    # AuthorizationヘッダーにBearerトークン設定
+    headers = {"Authorization": f"Bearer {VALID_TOKEN}"}
+
+    # エンドポイント "/hello2" にGETリクエスト送信、実際のWebサーバー通信は発生しない
+    response = client.get("/hello2", headers=headers)
+
+    # APIの戻り値を確認
+    assert response.status_code == 200
+    assert response.json() == {"message": "Hello2"}
+
+# テスト関数(正しいトークン送信時のテスト)
+def test_read_hello3_success():
+
+    # AuthorizationヘッダーにBearerトークン設定
+    headers = {"Authorization": f"Bearer {VALID_TOKEN}"}
+
+    # エンドポイント "/hello3" にGETリクエスト送信、実際のWebサーバー通信は発生しない
+    response = client.get("/hello3", headers=headers)
+
+    # APIの戻り値を確認
+    assert response.status_code == 200
+    assert response.json() == {"message": "Hello3"}
 
 # テスト関数(間違えたトークン送信時のテスト)
-def test_read_root_fail():
+def test_read_hello1_fail():
 
     # AuthorizationヘッダーにBearerトークン設定
     headers = {"Authorization": "Bearer invalid-token"}
 
-    # エンドポイント "/" にGETリクエスト送信、実際のWebサーバー通信は発生しない
-    response = client.get("/", headers=headers)
+    # エンドポイント "/hello1" にGETリクエスト送信、実際のWebサーバー通信は発生しない
+    response = client.get("/hello1", headers=headers)
+
+    # APIの戻り値を確認
+    assert response.status_code == 401
+    assert response.json() == {"detail":"Invalid Token"}
+
+# テスト関数(間違えたトークン送信時のテスト)
+def test_read_hello2_fail():
+
+    # AuthorizationヘッダーにBearerトークン設定
+    headers = {"Authorization": "Bearer invalid-token"}
+
+    # エンドポイント "/hello2" にGETリクエスト送信、実際のWebサーバー通信は発生しない
+    response = client.get("/hello2", headers=headers)
+
+    # APIの戻り値を確認
+    assert response.status_code == 401
+    assert response.json() == {"detail":"Invalid Token"}
+
+# テスト関数(間違えたトークン送信時のテスト)
+def test_read_hello3_fail():
+
+    # AuthorizationヘッダーにBearerトークン設定
+    headers = {"Authorization": "Bearer invalid-token"}
+
+    # エンドポイント "/hello3" にGETリクエスト送信、実際のWebサーバー通信は発生しない
+    response = client.get("/hello3", headers=headers)
 
     # APIの戻り値を確認
     assert response.status_code == 401
     assert response.json() == {"detail":"Invalid Token"}
 
 # テスト関数(トークン無しの場合のテスト)
-def test_read_root_no_token():
+def test_read_hello1_no_token():
 
-    # エンドポイント "/" にGETリクエスト送信、実際のWebサーバー通信は発生しない
-    response = client.get("/")
+    # エンドポイント "/hello1" にGETリクエスト送信、実際のWebサーバー通信は発生しない
+    response = client.get("/hello1")
+
+    # APIの戻り値を確認
+    assert response.status_code == 401
+    assert response.json() == {"detail":"Not authenticated"}
+
+# テスト関数(トークン無しの場合のテスト)
+def test_read_hello2_no_token():
+
+    # エンドポイント "/hello2" にGETリクエスト送信、実際のWebサーバー通信は発生しない
+    response = client.get("/hello2")
+
+    # APIの戻り値を確認
+    assert response.status_code == 401
+    assert response.json() == {"detail":"Not authenticated"}
+
+# テスト関数(トークン無しの場合のテスト)
+def test_read_hello3_no_token():
+
+    # エンドポイント "/hello3" にGETリクエスト送信、実際のWebサーバー通信は発生しない
+    response = client.get("/hello3")
 
     # APIの戻り値を確認
     assert response.status_code == 401
