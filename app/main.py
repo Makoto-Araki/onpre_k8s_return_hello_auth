@@ -49,7 +49,7 @@ def read_hello3():
 app.include_router(router)
 
 # HTTP-POSTメソッドで "/login" にアクセス時の処理
-@router.post("/login")
+@app.post("/login")
 def login(username: str, password: str):
     if username != FIXED_USER or password != FIXED_PASS:
         raise HTTPException(
