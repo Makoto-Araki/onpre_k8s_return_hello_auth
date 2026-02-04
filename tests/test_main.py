@@ -114,3 +114,47 @@ def test_read_hello3_no_token():
     # APIの戻り値を確認
     assert response.status_code == 401
     assert response.json() == {"detail":"Not authenticated"}
+
+# テスト関数(正規ユーザーと正規パスワードのテスト)
+def test_login_success():
+
+    # エンドポイント "/login" にPOSTリクエスト送信
+    response = client.post(
+        "/login",
+        params={
+            "username": "admin",
+            "password": "password",
+        },
+    )
+
+    # リターンステータスコード
+    assert response.status_code == 200
+
+    # レスポンスJSON取得
+    data = response.json()
+
+    # トークン
+    assert "access_token" in data
+    assert data["access_token"] == "my-secret-token"
+    assert data["token_type"] == "bearer"
+
+# テスト関数(不正ユーザーと不正パスワードのテスト)
+def test_login_success():
+
+    # エンドポイント "/login" にPOSTリクエスト送信
+    response = client.post(
+        "/login",
+        params={
+            "username": "admin",
+            "password": "invalid",
+        },
+    )
+
+    # リターンステータスコード
+    assert response.status_code == 401
+
+    # レスポンスJSON取得
+    data = response.json()
+
+    # トークン
+    assert data["detail"] == "Invalid username or password"
