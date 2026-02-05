@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, status, APIRouter
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+import secrets
 
 # アプリ(ASGI)のインスタンス生成
 app = FastAPI()
@@ -14,7 +15,14 @@ FIXED_USER = "admin"
 FIXED_PASS = "password"
 
 # 固定トークン
-FIXED_TOKEN = "my-secret-token"
+#FIXED_TOKEN = "my-secret-token"
+
+# 発行済トークン保存
+issued_tokens = set[str] = set()
+
+# ランダムトークン生成用関数
+def generate_token() -> str:
+    return secrets.token_urlsafe(32)
 
 # 認証用関数
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
@@ -30,19 +38,16 @@ router = APIRouter(dependencies=[Depends(verify_token)])
 # HTTP-GETメソッドで "/hello1" にアクセス時の処理
 @router.get("/hello1")
 def read_hello1():
-    # 辞書を返すと自動的にJSONに変換
     return {"message": "Hello1"}
 
 # HTTP-GETメソッドで "/hello2" にアクセス時の処理
 @router.get("/hello2")
 def read_hello2():
-    # 辞書を返すと自動的にJSONに変換
     return {"message": "Hello2"}
 
 # HTTP-GETメソッドで "/hello3" にアクセス時の処理
 @router.get("/hello3")
 def read_hello3():
-    # 辞書を返すと自動的にJSONに変換
     return {"message": "Hello3"}
 
 # Routerをアプリに登録
@@ -57,10 +62,26 @@ def login(username: str, password: str):
             detail = "Invalid username or password",
         )
 
+    # 新しいトークン生成
+    token = generate_token()
+
+    # 発行済トークン保存
+    issued_tokens.add(token)
+
     return {
-        "access_token": FIXED_TOKEN,
+        "access_token": token,
         "token_type": "bearer",
     }
+
+# HTTP-POSTメソッドで "/logout" にアクセス時の処理
+@app.post("/logout")
+def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+
+    # トークン削除(失効)
+    issued_tokens.discard(token)
+
+    return {"message": "Logged out"}
 
 # HTTP-GETメソッドでヘルスチェック用エンドポイント
 @app.get("/health")
