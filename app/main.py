@@ -18,7 +18,7 @@ FIXED_PASS = "password"
 #FIXED_TOKEN = "my-secret-token"
 
 # 発行済トークン保存
-issued_tokens = set[str] = set()
+issued_tokens = set()
 
 # ランダムトークン生成用関数
 def generate_token() -> str:
@@ -26,10 +26,10 @@ def generate_token() -> str:
 
 # 認証用関数
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    if credentials.credentials != FIXED_TOKEN:
+    if credentials.credentials not in issued_tokens:
         raise HTTPException(
             status_code = status.HTTP_401_UNAUTHORIZED,
-            detail = "Invalid Token",
+            detail = "Invalid or expired token",
         )
 
 # Router作成、認証必須
