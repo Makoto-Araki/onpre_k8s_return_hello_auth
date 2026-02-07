@@ -33,6 +33,8 @@ def generate_token() -> str:
 # --------------------------------------------------
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
+
+    # Redisに存在しなければ無効または期限切れ
     if not redis_client.exists(token):
         raise HTTPException(
             status_code = status.HTTP_401_UNAUTHORIZED,
@@ -72,12 +74,20 @@ def login(username: str, password: str):
     # 新しいトークン生成
     token = generate_token()
 
-    # Redis保存
-    redis_client.set(token, 1)
+    # トークン有効期限(秒)
+    ACCESS_TOKEN_EXPIRE_SECONDS = 300 # 300秒(5分)
+
+    # Redisに有効期限付き保存
+    redis_client.setex(
+        name = token,
+        time = ACCESS_TOKEN_EXPIRE_SECONDS,
+        value = 1
+    )
 
     return {
         "access_token": token,
         "token_type": "bearer",
+        "expires_in": ACCESS_TOKEN_EXPIRE_SECONDS,
     }
 
 # --------------------------------------------------
