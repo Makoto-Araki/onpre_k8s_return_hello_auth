@@ -21,7 +21,7 @@ spec:
       containers:
         - name: onpre-k8s-return-hello-auth-container  # コンテナ名
           # イメージの取得先
-          image: makotoaraki346/onpre_k8s_return_hello_auth_image:v0.4.1  # Dockerhub上のイメージ指定
+          image: makotoaraki346/onpre_k8s_return_hello_auth_image:v0.4.2  # Dockerhub上のイメージ指定
           # イメージのダウンロード設定
           imagePullPolicy: IfNotPresent  # ローカルにイメージが存在すれば再取得しない
           # ポート番号

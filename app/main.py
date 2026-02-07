@@ -14,6 +14,12 @@ redis_client = redis.Redis(
 )
 
 # --------------------------------------------------
+# トークン有効期限(秒)
+# --------------------------------------------------
+ACCESS_TOKEN_EXPIRE_SECONDS = 300 # 300秒(5分)
+REFRESH_TOKEN_EXPIRE_SECONDS = 3600 # 3600秒(60分)
+
+# --------------------------------------------------
 # FastAPI
 # --------------------------------------------------
 app = FastAPI()
@@ -35,7 +41,7 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
 
     # Redisに存在しなければ無効または期限切れ
-    if not redis_client.exists(token):
+    if not redis_client.exists(f"access:{token}"):
         raise HTTPException(
             status_code = status.HTTP_401_UNAUTHORIZED,
             detail = "Invalid or expired token",
@@ -61,6 +67,36 @@ def read_hello3():
 app.include_router(router)
 
 # --------------------------------------------------
+# リフレッシュ
+# --------------------------------------------------
+@app.post("/refresh")
+def refresh(refresh_token: str):
+    key = f"refresh:{refresh_token}"
+
+    # リフレッシュトークン確認
+    if not redis_client.exists(key):
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "Invalid or expired refresh token",
+        )
+
+    # 新しいアクセストークン発行
+    new_access_token = generate_token()
+
+    # Redis登録
+    redis_client.setex(
+        name = f"access:{new_access_token}",
+        time = ACCESS_TOKEN_EXPIRE_SECONDS,
+        value = 1
+    )
+
+    return {
+        "access_token": new_access_token,
+        "token_type": "bearer",
+        "expire_in": ACCESS_TOKEN_EXPIRE_SECONDS,
+    }
+
+# --------------------------------------------------
 # ログイン
 # --------------------------------------------------
 @app.post("/login")
@@ -72,20 +108,24 @@ def login(username: str, password: str):
         )
 
     # 新しいトークン生成
-    token = generate_token()
-
-    # トークン有効期限(秒)
-    ACCESS_TOKEN_EXPIRE_SECONDS = 300 # 300秒(5分)
+    access_token = generate_token()
+    refresh_token = generate_token()
 
     # Redisに有効期限付き保存
     redis_client.setex(
-        name = token,
+        name = f"access:{access_token}",
         time = ACCESS_TOKEN_EXPIRE_SECONDS,
+        value = 1
+    )
+    redis_client.setex(
+        name = f"refresh:{refresh_token}",
+        time = REFRESH_TOKEN_EXPIRE_SECONDS,
         value = 1
     )
 
     return {
-        "access_token": token,
+        "access_token": access_token,
+        "refresh_token": refresh_token,
         "token_type": "bearer",
         "expires_in": ACCESS_TOKEN_EXPIRE_SECONDS,
     }
@@ -98,7 +138,7 @@ def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
 
     # Redisから削除(失効)
-    redis_client.delete(token)
+    redis_client.delete(f"access:{token}")
 
     return {"message": "Logged out"}
 
