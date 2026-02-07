@@ -1,115 +1,49 @@
 from fastapi.testclient import TestClient
-from app.main import app
+import fakeredis
 
-# テストクライアントにFastAPIアプリを読み込ませてインスタンス生成
+from app.main import app, redis_client
+
+# --------------------------------------------------
+# テスト用Redisに差替
+# --------------------------------------------------
+fake_redis = fakeredis.FakeRedis(decode_responses=True)
+
+# main.pyのredis_clientを上書き
+redis_client.connection_pool = fake_redis.connection_pool
+
+# --------------------------------------------------
+# TestClient
+# --------------------------------------------------
 client = TestClient(app)
 
-# 固定トークン
-#VALID_TOKEN = "my-secret-token"
+FIXED_USER = "admin"
+FIXED_PASS = "password"
 
-# 正しいトークン取得
-def get_valid_token() -> str:
-    response = client.post(
-        "/login",
-        params = {
-            "username": "admin",
-            "password": "password",
-        },
-    )
-    assert response.status_code == 200
-    return response.json()["access_token"]
-
-# テスト関数(正しいトークン送信時のテスト)
-def test_read_hello1_success():
-    token = get_valid_token()
-
-    # AuthorizationヘッダーにBearerトークン設定
-    headers = {"Authorization": f"Bearer {token}"}
-
-    # エンドポイント "/hello1" にGETリクエスト送信、実際のWebサーバー通信は発生しない
-    response = client.get("/hello1", headers=headers)
-
-    # APIの戻り値を確認
-    assert response.status_code == 200
-    assert response.json() == {"message": "Hello1"}
-
-# テスト関数(正しいトークン送信時のテスト)
-def test_read_hello2_success():
-    token = get_valid_token()
-
-    # AuthorizationヘッダーにBearerトークン設定
-    headers = {"Authorization": f"Bearer {token}"}
-
-    # エンドポイント "/hello2" にGETリクエスト送信、実際のWebサーバー通信は発生しない
-    response = client.get("/hello2", headers=headers)
-
-    # APIの戻り値を確認
-    assert response.status_code == 200
-    assert response.json() == {"message": "Hello2"}
-
-# テスト関数(正しいトークン送信時のテスト)
-def test_read_hello3_success():
-    token = get_valid_token()
-
-    # AuthorizationヘッダーにBearerトークン設定
-    headers = {"Authorization": f"Bearer {token}"}
-
-    # エンドポイント "/hello3" にGETリクエスト送信、実際のWebサーバー通信は発生しない
-    response = client.get("/hello3", headers=headers)
-
-    # APIの戻り値を確認
-    assert response.status_code == 200
-    assert response.json() == {"message": "Hello3"}
-
-# テスト関数(間違えたトークン送信時のテスト)
-def test_read_hello_invalid_token():
-
-    # AuthorizationヘッダーにBearerトークン設定
-    headers = {"Authorization": "Bearer invalid-token"}
-
-    # エンドポイント "/hello1" にGETリクエスト送信、実際のWebサーバー通信は発生しない
-    response = client.get("/hello1", headers=headers)
-
-    # APIの戻り値を確認
-    assert response.status_code == 401
-    assert response.json() == {"detail":"Invalid or expired token"}
-
-# テスト関数(トークン無しの場合のテスト)
-def test_read_hello_no_token():
-
-    # エンドポイント "/hello1" にGETリクエスト送信、実際のWebサーバー通信は発生しない
-    response = client.get("/hello1")
-
-    # APIの戻り値を確認
-    assert response.status_code == 401
-    assert response.json() == {"detail":"Not authenticated"}
-
-# テスト関数(正規ユーザーと正規パスワードのテスト)
+# --------------------------------------------------
+# ログイン成功
+# --------------------------------------------------
 def test_login_success():
-
-    # エンドポイント "/login" にPOSTリクエスト送信
     response = client.post(
         "/login",
         params={
-            "username": "admin",
-            "password": "password",
+            "username": FIXED_USER,
+            "password": FIXED_PASS,
         },
     )
 
-    # リターンステータスコード
     assert response.status_code == 200
-
-    # レスポンスJSON取得
     data = response.json()
-
-    # トークン
     assert "access_token" in data
     assert data["token_type"] == "bearer"
 
-# テスト関数(不正ユーザーと不正パスワードのテスト)
-def test_login_failure():
+    # Redis保存を確認
+    token = data["access_token"]
+    assert fake_redis.exists(token) == 1
 
-    # エンドポイント "/login" にPOSTリクエスト送信
+# --------------------------------------------------
+# ログイン失敗
+# --------------------------------------------------
+def test_login_fail():
     response = client.post(
         "/login",
         params={
@@ -118,11 +52,61 @@ def test_login_failure():
         },
     )
 
-    # リターンステータスコード
     assert response.status_code == 401
-
-    # レスポンスJSON取得
     data = response.json()
-
-    # トークン
     assert data["detail"] == "Invalid username or password"
+
+# --------------------------------------------------
+# 認証付きエンドポイント(成功)
+# --------------------------------------------------
+def test_hello1_with_valid_token():
+    login = client.post(
+        "/login",
+        params = {
+            "username": FIXED_USER,
+            "password": FIXED_PASS,
+        },
+    )
+
+    token = login.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+    response = client.get("/hello1", headers=headers)
+
+    assert response.status_code == 200
+    assert response.json() == {"message": "Hello1"}
+
+# --------------------------------------------------
+# 認証付きエンドポイント(トークン不正)
+# --------------------------------------------------
+def test_hello1_with_invalid_token():
+    headers = {"Authorization": "Bearer invalid-token"}
+    response = client.get("/hello1", headers=headers)
+
+    assert response.status_code == 401
+    assert response.json() == {"detail":"Invalid or expired token"}
+
+# --------------------------------------------------
+# ログアウト
+# --------------------------------------------------
+def test_logout():
+    login = client.post(
+        "/login",
+        params={
+            "username": FIXED_USER,
+            "password": FIXED_PASS,
+        },
+    )
+
+    token = login.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+    response = client.post("/logout", headers=headers)
+
+    assert response.status_code == 200
+    assert response.json()["message"] == "Logged out"
+
+    # Redisからの削除確認
+    assert fake_redis.exists(token) == 0
+
+    # 以降アクセス不可
+    response = client.get("/hello1", headers=headers)
+    assert response.status_code == 401

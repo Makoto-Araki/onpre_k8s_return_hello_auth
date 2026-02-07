@@ -1,59 +1,66 @@
 from fastapi import FastAPI, Depends, HTTPException, status, APIRouter
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import secrets
+import redis
 
-# アプリ(ASGI)のインスタンス生成
+# --------------------------------------------------
+# Redis接続
+# --------------------------------------------------
+redis_client = redis.Redis(
+    host = "redis", # Service名
+    port = 6379,
+    db = 0,
+    decode_responses = True, # strで取扱可能
+)
+
+# --------------------------------------------------
+# FastAPI
+# --------------------------------------------------
 app = FastAPI()
-
-# トークン抽出のインスタンス生成
 security = HTTPBearer()
 
-# 固定ユーザー
 FIXED_USER = "admin"
-
-# 固定パスワード
 FIXED_PASS = "password"
 
-# 固定トークン
-#FIXED_TOKEN = "my-secret-token"
-
-# 発行済トークン保存
-issued_tokens = set()
-
+# --------------------------------------------------
 # ランダムトークン生成用関数
+# --------------------------------------------------
 def generate_token() -> str:
     return secrets.token_urlsafe(32)
 
-# 認証用関数
+# --------------------------------------------------
+# 認証チェック
+# --------------------------------------------------
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    if credentials.credentials not in issued_tokens:
+    token = credentials.credentials
+    if not redis_client.exists(token):
         raise HTTPException(
             status_code = status.HTTP_401_UNAUTHORIZED,
             detail = "Invalid or expired token",
         )
 
-# Router作成、認証必須
+# --------------------------------------------------
+# 認証必須Router
+# --------------------------------------------------
 router = APIRouter(dependencies=[Depends(verify_token)])
 
-# HTTP-GETメソッドで "/hello1" にアクセス時の処理
 @router.get("/hello1")
 def read_hello1():
     return {"message": "Hello1"}
 
-# HTTP-GETメソッドで "/hello2" にアクセス時の処理
 @router.get("/hello2")
 def read_hello2():
     return {"message": "Hello2"}
 
-# HTTP-GETメソッドで "/hello3" にアクセス時の処理
 @router.get("/hello3")
 def read_hello3():
     return {"message": "Hello3"}
 
-# Routerをアプリに登録
 app.include_router(router)
 
-# HTTP-POSTメソッドで "/login" にアクセス時の処理
+# --------------------------------------------------
+# ログイン
+# --------------------------------------------------
 @app.post("/login")
 def login(username: str, password: str):
     if username != FIXED_USER or password != FIXED_PASS:
@@ -65,25 +72,29 @@ def login(username: str, password: str):
     # 新しいトークン生成
     token = generate_token()
 
-    # 発行済トークン保存
-    issued_tokens.add(token)
+    # Redis保存
+    redis_client.set(token, 1)
 
     return {
         "access_token": token,
         "token_type": "bearer",
     }
 
-# HTTP-POSTメソッドで "/logout" にアクセス時の処理
+# --------------------------------------------------
+# ログアウト
+# --------------------------------------------------
 @app.post("/logout")
 def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
 
-    # トークン削除(失効)
-    issued_tokens.discard(token)
+    # Redisから削除(失効)
+    redis_client.delete(token)
 
     return {"message": "Logged out"}
 
-# HTTP-GETメソッドでヘルスチェック用エンドポイント
+# --------------------------------------------------
+# 生存確認
+# --------------------------------------------------
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
