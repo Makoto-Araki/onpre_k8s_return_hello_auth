@@ -34,11 +34,14 @@ def test_login_success():
     assert response.status_code == 200
     data = response.json()
     assert "access_token" in data
+    assert "refresh_token" in data
     assert data["token_type"] == "bearer"
 
     # Redis保存を確認
-    token = data["access_token"]
-    assert fake_redis.exists(token) == 1
+    access_token = data["access_token"]
+    refresh_token = data["refresh_token"]
+    assert fake_redis.exists(f"access:{access_token}") == 1
+    assert fake_redis.exists(f"refresh:{refresh_token}") == 1
 
 # --------------------------------------------------
 # ログイン失敗
@@ -97,16 +100,42 @@ def test_logout():
         },
     )
 
-    token = login.json()["access_token"]
-    headers = {"Authorization": f"Bearer {token}"}
+    access_token = login.json()["access_token"]
+    headers = {"Authorization": f"Bearer {access_token}"}
     response = client.post("/logout", headers=headers)
 
     assert response.status_code == 200
     assert response.json()["message"] == "Logged out"
 
     # Redisからの削除確認
-    assert fake_redis.exists(token) == 0
+    assert fake_redis.exists(f"access:{access_token}") == 0
 
     # 以降アクセス不可
     response = client.get("/hello1", headers=headers)
     assert response.status_code == 401
+
+# --------------------------------------------------
+# リフレッシュ成功
+# --------------------------------------------------
+def test_refresh_success():
+    login = client.post(
+        "/login",
+        params = {
+            "username": FIXED_USER,
+            "password": FIXED_PASS,
+        },
+    )
+
+    data = login.json()
+    refresh_token = data["refresh_token"]
+
+    response = client.post(
+        "/refresh",
+        params = {
+            "refresh_token": refresh_token
+        }
+    )
+
+    assert response.status_code == 200
+    new_data = response.json()
+    assert "access_token" in new_data
