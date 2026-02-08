@@ -141,7 +141,7 @@ def test_refresh_success():
     assert "access_token" in new_data
 
 # --------------------------------------------------
-# リフレッシュトークンのローテーション
+# リフレッシュトークンのローテーションと再使用検知
 # --------------------------------------------------
 def test_refresh_rotation():
     login = client.post(
@@ -153,32 +153,23 @@ def test_refresh_rotation():
     )
 
     data = login.json()
-    old_refresh_token = data["refresh_token"]
+    refresh_token = data["refresh_token"]
 
     # リフレッシュ(1回目)
     r1 = client.post(
         "/refresh",
         params = {
-            "refresh_token": old_refresh_token
+            "refresh_token": refresh_token
         }
     )
     assert r1.status_code == 200
-    new_refresh_token = r1.json()["refresh_token"]
 
     # リフレッシュ(2回目)
     r2 = client.post(
         "/refresh",
         params = {
-            "refresh_token": old_refresh_token
+            "refresh_token": refresh_token
         }
     )
-    assert r2.status_code == 401  # 古いリフレッシュトークンは使用不可
-
-    # リフレッシュ(3回目)
-    r3 = client.post(
-        "/refresh",
-        params = {
-            "refresh_token": new_refresh_token
-        }
-    )
-    assert r3.status_code == 200  # 新しいリフレッシュトークンは使用可能
+    assert r2.status_code == 401
+    assert r2.json()["detail"] == "Refresh token reuse detected"

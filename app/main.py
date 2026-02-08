@@ -71,17 +71,32 @@ app.include_router(router)
 # --------------------------------------------------
 @app.post("/refresh")
 def refresh(refresh_token: str):
-    key = f"refresh:{refresh_token}"
+    refresh_key = f"refresh:{refresh_token}"
+    used_key = f"used_refresh:{refresh_token}"
 
-    # リフレッシュトークン存在確認
-    if not redis_client.exists(key):
+    # リフレッシュトークン再利用検知
+    if redis_client.exists(used_key):
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "Refresh token reuse detected",
+        )
+
+    # リフレッシュトークン有効確認
+    if not redis_client.exists(refresh_key):
         raise HTTPException(
             status_code = status.HTTP_401_UNAUTHORIZED,
             detail = "Invalid or expired refresh token",
         )
 
+    # 使用済み登録
+    redis_client.setex(
+        name = used_key,
+        time = REFRESH_TOKEN_EXPIRE_SECONDS,
+        value = 1
+    )
+
     # 古いリフレッシュトークン削除(ローテーション)
-    redis_client.delete(key)
+    redis_client.delete(refresh_key)
 
     # 新しいトークン発行
     new_access_token = generate_token()
