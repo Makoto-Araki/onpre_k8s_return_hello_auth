@@ -4,8 +4,8 @@ metadata:
   # Serviceの名前
   name: onpre-k8s-return-hello-auth
 spec:
-  # ノードのポート番号でアクセス可の方式
-  type: NodePort
+  # Ingress経由でアプリ公開
+  type: ClusterIP
   # 通信の転送先Podの選択条件
   selector:
     app: onpre-k8s-return-hello-auth
@@ -13,4 +13,3 @@ spec:
   ports:
     - port: 8000  # Service自体が待ち受けるポート番号
       targetPort: 8000  # Pod(コンテナ)側のポート番号
-      nodePort: 30080  # ノードで公開されるポート番号
